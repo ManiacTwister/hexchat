@@ -1058,11 +1058,11 @@ servlist_net_remove (ircnet *net)
 	if (net->real)
 		free (net->real);
 
-	#ifdef USE_LIBSECRET
-		/* To be sure that no old password is stored in the secret store we delete the password if net->pass is empty */
-		secret_password_clear (HEXCHAT_SCHEMA, NULL, NULL, NULL,
-																								"netname", net->name, NULL);
-	#endif
+#ifdef USE_LIBSECRET
+	/* To be sure that no old password is stored in the secret store we delete the password if net->pass is empty */
+	secret_password_clear (HEXCHAT_SCHEMA, NULL, NULL, NULL,
+					 "netname", net->name, NULL);
+#endif
 
 	free_and_clear(net->pass);
 	if (net->favchanlist)
@@ -1264,14 +1264,14 @@ servlist_load (void)
 		{
 			net = servlist_net_add (buf + 2, /* comment */ NULL, FALSE);
 
-			#ifdef USE_LIBSECRET
-				gchar *password = secret_password_lookup_sync (HEXCHAT_SCHEMA, NULL, NULL,
-																															"netname", net->name, NULL);
-				if (password != NULL) {
-						net->pass = g_strdup (password);
-						secret_password_free (password);
-				}
-			#endif
+#ifdef USE_LIBSECRET
+			gchar *password = secret_password_lookup_sync (HEXCHAT_SCHEMA, NULL, NULL,
+							 "netname", net->name, NULL);
+			if (password != NULL) {
+				net->pass = g_strdup (password);
+				secret_password_free (password);
+			}
+#endif
 		}
 	}
 	fclose (fp);
@@ -1373,30 +1373,26 @@ servlist_save (void)
 			fprintf (fp, "R=%s\n", net->real);
 		if (net->pass)
 		{
-			#ifdef USE_LIBSECRET
-				gchar *dispName;
+#ifdef USE_LIBSECRET
+			gchar *dispName;
 
-				dispName = g_strdup_printf(_("IRC (%s)"), net->name);
+			dispName = g_strdup_printf(_("IRC (%s)"), net->name);
 
-				/*
-				* netname identifier. NOTE: If the user creates more than one network
-				* with the same netname, the password for the first network will be overwritten.
-				*/
-				secret_password_store (HEXCHAT_SCHEMA, SECRET_COLLECTION_DEFAULT, dispName,
-                       net->pass, NULL, NULL, NULL,
-                       "netname", net->name, NULL);
-			#else
-				fprintf (fp, "P=%s\n", net->pass);
-			#endif
+			secret_password_store (HEXCHAT_SCHEMA, SECRET_COLLECTION_DEFAULT, dispName,
+							 net->pass, NULL, NULL, NULL,
+							 "netname", net->name, NULL);
+#else
+			fprintf (fp, "P=%s\n", net->pass);
+#endif
 		}
-		#ifdef USE_LIBSECRET
+#ifdef USE_LIBSECRET
 		else
 		{
-				/* To be sure that no old password is stored in the keyring we delete the password if net->pass is empty */
-				secret_password_clear (HEXCHAT_SCHEMA, NULL, NULL, NULL,
-                       "netname", net->name, NULL);
+			/* To be sure that no old password is stored in the keyring we delete the password if net->pass is empty */
+			secret_password_clear (HEXCHAT_SCHEMA, NULL, NULL, NULL,
+							 "netname", net->name, NULL);
 		}
-		#endif
+#endif
 		if (net->logintype)
 			fprintf (fp, "L=%d\n", net->logintype);
 		if (net->encoding && g_ascii_strcasecmp (net->encoding, "System") &&
