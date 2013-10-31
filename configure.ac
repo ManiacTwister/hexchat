@@ -140,8 +140,8 @@ AC_ARG_ENABLE(libnotify,
         libnotify=$enableval, libnotify=yes)
 
 AC_ARG_ENABLE(libsecret,
-	[AS_HELP_STRING([--enable-libsecret],[enable libsecret support to store credentials (default: auto)])],
-        libsecret=$enableval, enable_libsecret=auto)
+	[AS_HELP_STRING([--disable-libsecret],[disable libsecret support])],
+        libsecret=$enableval, libsecret=yes)
 
 AC_ARG_ENABLE(libcanberra,
 	[AS_HELP_STRING([--disable-libcanberra],[disable libcanberra support])],
@@ -529,19 +529,15 @@ dnl *********************************************************************
 dnl ** LIBSECRET ********************************************************
 dnl *********************************************************************
 
-if test "x$enable_libsecret" = "xyes"; then
-   PKG_CHECK_MODULES(LIBSECRET,
-                     [libsecret-1],
-                     [use_libsecret=yes],
-                     [use_libsecret=no])
-
-   if test "x$use_libsecret" = "xyes"; then
-      CPPFLAGS="$CPPFLAGS $LIBSECRET_CFLAGS"
-      LIBS="$LIBS $LIBSECRET_LIBS"
-      AC_DEFINE(USE_LIBSECRET, [], [Define if we use libsecret for password storage])
-   else
-      AC_MSG_ERROR([Couldn't find libsecret])
-   fi
+if test "x$libsecret" = "xyes"; then
+	PKG_CHECK_MODULES(LIBSECRET, [libsecret-1], [], [
+		libsecret=no
+	])
+	if test "$libsecret" != "no"; then
+		COMMON_LIBS="$COMMON_LIBS $LIBSECRET_LIBS"
+		COMMON_CFLAGS="$COMMON_CFLAGS $LIBSECRET_CFLAGS"
+		AC_DEFINE(USE_LIBSECRET, [], [Define if we use libsecret for password storage])
+	fi
 fi
 
 dnl *********************************************************************
@@ -582,7 +578,7 @@ dnl *********************************************************************
 
 AM_CONDITIONAL(USE_OPENSSL, test "x$openssl" = "xyes")
 AM_CONDITIONAL(USE_LIBNOTIFY, test "x$libnotify" = "xyes")
-AM_CONDITIONAL(USE_LIBSECRET, test "x$use_libsecret" = "xyes")
+AM_CONDITIONAL(USE_LIBSECRET, test "x$libsecret" = "xyes")
 AM_CONDITIONAL(USE_LIBCANBERRA, test "x$libcanberra" = "xyes")
 AM_CONDITIONAL(DO_TEXT, test "x$textfe" = "xyes")
 AM_CONDITIONAL(DO_GTK, test "x$gtkfe" = "xyes")
@@ -844,7 +840,7 @@ echo
 echo OpenSSL support ....... : $openssl
 echo D-Bus support ......... : $dbus
 echo libnotify support ..... : $libnotify
-echo libsecret support ..... : $use_libsecret
+echo libsecret support ..... : $libsecret
 echo libcanberra support ... : $libcanberra
 echo Plugin interface ...... : $plugin
 echo NLS/gettext ........... : $USE_NLS
