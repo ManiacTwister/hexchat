@@ -43,6 +43,7 @@ AH_VERBATIM([USE_MSPROXY],[#undef USE_MSPROXY])
 AH_VERBATIM([USE_LIBPROXY],[#undef USE_LIBPROXY])
 AH_VERBATIM([HAVE_ISO_CODES],[#undef HAVE_ISO_CODES])
 AH_VERBATIM([USE_LIBNOTIFY],[#undef USE_LIBNOTIFY])
+AH_VERBATIM([USE_LIBSECRET],[#undef USE_LIBSECRET])
 AH_VERBATIM([USE_LIBCANBERRA],[#undef USE_LIBCANBERRA])
 AH_VERBATIM([USE_IPV6],[#undef USE_IPV6])
 AH_VERBATIM([USE_OPENSSL],[#undef USE_OPENSSL])
@@ -137,6 +138,10 @@ AC_ARG_ENABLE(dbus,
 AC_ARG_ENABLE(libnotify,
 	[AS_HELP_STRING([--disable-libnotify],[disable libnotify support])],
         libnotify=$enableval, libnotify=yes)
+
+AC_ARG_ENABLE(libsecret,
+	[AS_HELP_STRING([--enable-libsecret],[enable libsecret support to store credentials (default: auto)])],
+        libsecret=$enableval, enable_libsecret=auto)
 
 AC_ARG_ENABLE(libcanberra,
 	[AS_HELP_STRING([--disable-libcanberra],[disable libcanberra support])],
@@ -521,6 +526,25 @@ if test "x$libnotify" = "xyes" ; then
 fi
 
 dnl *********************************************************************
+dnl ** LIBSECRET ********************************************************
+dnl *********************************************************************
+
+if test "x$enable_libsecret" = "xyes"; then
+   PKG_CHECK_MODULES(LIBSECRET,
+                     [libsecret-1],
+                     [use_libsecret=yes],
+                     [use_libsecret=no])
+
+   if test "x$use_libsecret" = "xyes"; then
+      CPPFLAGS="$CPPFLAGS $LIBSECRET_CFLAGS"
+      LIBS="$LIBS $LIBSECRET_LIBS"
+      AC_DEFINE(USE_LIBSECRET, [], [Define if we use libsecret for password storage])
+   else
+      AC_MSG_ERROR([Couldn't find libsecret])
+   fi
+fi
+
+dnl *********************************************************************
 dnl ** LIBCANBERRA ******************************************************
 dnl *********************************************************************
 
@@ -558,6 +582,7 @@ dnl *********************************************************************
 
 AM_CONDITIONAL(USE_OPENSSL, test "x$openssl" = "xyes")
 AM_CONDITIONAL(USE_LIBNOTIFY, test "x$libnotify" = "xyes")
+AM_CONDITIONAL(USE_LIBSECRET, test "x$use_libsecret" = "xyes")
 AM_CONDITIONAL(USE_LIBCANBERRA, test "x$libcanberra" = "xyes")
 AM_CONDITIONAL(DO_TEXT, test "x$textfe" = "xyes")
 AM_CONDITIONAL(DO_GTK, test "x$gtkfe" = "xyes")
@@ -819,6 +844,7 @@ echo
 echo OpenSSL support ....... : $openssl
 echo D-Bus support ......... : $dbus
 echo libnotify support ..... : $libnotify
+echo libsecret support ..... : $use_libsecret
 echo libcanberra support ... : $libcanberra
 echo Plugin interface ...... : $plugin
 echo NLS/gettext ........... : $USE_NLS
