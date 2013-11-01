@@ -24,7 +24,7 @@ get_hexchat_schema (void)
   static const SecretSchema schema = {
     "org.hexchat.Password", SECRET_SCHEMA_NONE,
     {
-      {  "netname", SECRET_SCHEMA_ATTRIBUTE_STRING },
+      {  "network", SECRET_SCHEMA_ATTRIBUTE_STRING },
       {  "NULL", 0 },
     }
   };
