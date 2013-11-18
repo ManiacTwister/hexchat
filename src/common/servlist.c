@@ -1062,9 +1062,12 @@ servlist_net_remove (ircnet *net)
 		free (net->real);
 
 #ifdef USE_LIBSECRET
+	if (prefs.hex_libsecret_store) 
+	{
 	/* To be sure that no old password is stored in the secret store we delete the password if net->pass is empty */
 	secret_password_clear (HEXCHAT_SCHEMA, NULL, NULL, NULL,
 					 "network", net->name, NULL);
+	}
 #endif
 
 	free_and_clear(net->pass);
@@ -1268,12 +1271,15 @@ servlist_load (void)
 			net = servlist_net_add (buf + 2, /* comment */ NULL, FALSE);
 
 #ifdef USE_LIBSECRET
-			gchar *password = secret_password_lookup_sync (HEXCHAT_SCHEMA, NULL, NULL,
-							 "network", net->name, NULL);
-			if (password != NULL)
+			if (prefs.hex_libsecret_store) 
 			{
-				net->pass = strdup (password);
-				secret_password_free (password);
+				gchar *password = secret_password_lookup_sync (HEXCHAT_SCHEMA, NULL, NULL,
+								 "network", net->name, NULL);
+				if (password != NULL)
+				{
+					net->pass = strdup (password);
+					secret_password_free (password);
+				}
 			}
 #endif
 		}
@@ -1397,36 +1403,43 @@ servlist_save (void)
 		if (net->pass)
 		{
 #ifdef USE_LIBSECRET
-			gchar *dispName;
-
-			dispName = g_strdup_printf(_("IRC (%s)"), net->name);
-
-			if (hexchat_is_quitting || pass_store_fallback)
+			if (prefs.hex_libsecret_store)
 			{
-				GError *error = NULL;
-				secret_password_store_sync (HEXCHAT_SCHEMA, SECRET_COLLECTION_DEFAULT, dispName,
-								 net->pass, NULL, &error,
-								 "network", net->name, NULL);
-				/* Store password in servlist config if storing in keyring fails */
-				if (error != NULL)
+				gchar *dispName;
+
+				dispName = g_strdup_printf(_("IRC (%s)"), net->name);
+
+				if (hexchat_is_quitting || pass_store_fallback)
 				{
-					fprintf (fp, "P=%s\n", net->pass);
-					g_error_free (error);
+					GError *error = NULL;
+					secret_password_store_sync (HEXCHAT_SCHEMA, SECRET_COLLECTION_DEFAULT, dispName,
+									 net->pass, NULL, &error,
+									 "network", net->name, NULL);
+					/* Store password in servlist config if storing in keyring fails */
+					if (error != NULL)
+					{
+						fprintf (fp, "P=%s\n", net->pass);
+						g_error_free (error);
+					}
 				}
+				else
+				{
+					secret_password_store (HEXCHAT_SCHEMA, SECRET_COLLECTION_DEFAULT, dispName,
+									 net->pass, NULL, on_password_stored, NULL,
+									 "network", net->name, NULL);
+				}
+				g_free (dispName);
 			}
 			else
 			{
-				secret_password_store (HEXCHAT_SCHEMA, SECRET_COLLECTION_DEFAULT, dispName,
-								 net->pass, NULL, on_password_stored, NULL,
-								 "network", net->name, NULL);
+				fprintf (fp, "P=%s\n", net->pass);
 			}
-			g_free (dispName);
 #else
 			fprintf (fp, "P=%s\n", net->pass);
 #endif
 		}
 #ifdef USE_LIBSECRET
-		else
+		else if (prefs.hex_libsecret_store) 
 		{
 			/* To be sure that no old password is stored in the keyring we delete the password if net->pass is empty */
 			if (hexchat_is_quitting)

@@ -607,6 +607,16 @@ static const setting network_settings[] =
 	{ST_END, 0, 0, 0, 0, 0}
 };
 
+#ifdef USE_LIBSECRET
+static const setting libsecret_settings[] =
+{
+	{ST_TOGGLE, N_("Enable libsecret"), P_OFFINTNL(hex_libsecret_store),
+					N_("Stores passwords in libsecret keyring instead of plaintext config"), 0, 0},
+
+	{ST_END, 0, 0, 0, 0, 0}
+};
+#endif
+
 #define setup_get_str(pr,set) (((char *)pr)+set->offset)
 #define setup_get_int(pr,set) *(((int *)pr)+set->offset)
 #define setup_get_int3(pr,off) *(((int *)pr)+off) 
@@ -1858,6 +1868,9 @@ static const char *const cata[] =
 	N_("Network"),
 		N_("Network setup"),
 		N_("File transfers"),
+#ifdef USE_LIBSECRET
+		N_("Security"),
+#endif
 		NULL,
 	NULL
 };
@@ -1892,6 +1905,9 @@ setup_create_pages (GtkWidget *box)
 
 	setup_add_page (cata[14], book, setup_create_page (network_settings));
 	setup_add_page (cata[15], book, setup_create_page (filexfer_settings));
+#ifdef USE_LIBSECRET
+	setup_add_page (cata[17], book, setup_create_page (libsecret_settings));
+#endif
 
 	gtk_notebook_set_show_tabs (GTK_NOTEBOOK (book), FALSE);
 	gtk_notebook_set_show_border (GTK_NOTEBOOK (book), FALSE);
