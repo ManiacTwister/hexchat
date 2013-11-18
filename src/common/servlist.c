@@ -501,9 +501,6 @@ static const struct defaultserver def[] =
 };
 
 GSList *network_list = 0;
-#ifdef USE_LIBSECRET
-int pass_store_fallback = FALSE;
-#endif
 
 #if !GLIB_CHECK_VERSION(2,34,0)
 #define g_slist_copy_deep servlist_slist_copy_deep
@@ -1064,9 +1061,9 @@ servlist_net_remove (ircnet *net)
 #ifdef USE_LIBSECRET
 	if (prefs.hex_libsecret_store) 
 	{
-	/* To be sure that no old password is stored in the secret store we delete the password if net->pass is empty */
-	secret_password_clear (HEXCHAT_SCHEMA, NULL, NULL, NULL,
-					 "network", net->name, NULL);
+		/* To be sure that no old password is stored in the secret store we delete the password if net->pass is empty */
+		secret_password_clear (HEXCHAT_SCHEMA, NULL, NULL, NULL,
+						 "network", net->name, NULL);
 	}
 #endif
 
@@ -1340,9 +1337,8 @@ on_password_stored (GObject *source, GAsyncResult *result, gpointer unused)
 	 * synchronously. If it fails again it will be stored in servlist config then.
 	 */
 	if (error != NULL) {
-		pass_store_fallback = TRUE;
+		prefs.hex_libsecret_store = 0;
 		servlist_save ();
-		pass_store_fallback = FALSE;
 		g_error_free (error);
 	}
 }
@@ -1409,7 +1405,7 @@ servlist_save (void)
 
 				dispName = g_strdup_printf(_("IRC (%s)"), net->name);
 
-				if (hexchat_is_quitting || pass_store_fallback)
+				if (hexchat_is_quitting)
 				{
 					GError *error = NULL;
 					secret_password_store_sync (HEXCHAT_SCHEMA, SECRET_COLLECTION_DEFAULT, dispName,
@@ -1444,13 +1440,13 @@ servlist_save (void)
 			/* To be sure that no old password is stored in the keyring we delete the password if net->pass is empty */
 			if (hexchat_is_quitting)
 			{
-			secret_password_clear_sync (HEXCHAT_SCHEMA, NULL, NULL,
-							 "network", net->name, NULL);
+				secret_password_clear_sync (HEXCHAT_SCHEMA, NULL, NULL,
+								 "network", net->name, NULL);
 			}
 			else
 			{
-			secret_password_clear (HEXCHAT_SCHEMA, NULL, NULL, NULL,
-							 "network", net->name, NULL);
+				secret_password_clear (HEXCHAT_SCHEMA, NULL, NULL, NULL,
+								 "network", net->name, NULL);
 			}
 		}
 #endif
